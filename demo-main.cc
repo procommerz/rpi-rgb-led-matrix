@@ -72,12 +72,12 @@ public:
     // Scroll image with "scroll_jumps" pixels every "scroll_ms" milliseconds.
     // If "scroll_ms" is negative, don't do any scrolling.
     ImageBuffer(Canvas *m)
-    : ThreadedCanvasManipulator(m), scroll_jumps_(scroll_jumps),
-    scroll_ms_(scroll_ms),
+    : ThreadedCanvasManipulator(m), scroll_jumps_(0),
+    scroll_ms_(0),
     horizontal_position_(0) {
     }
     
-    virtual ~ImageScroller() {
+    virtual ~ImageBuffer() {
         Stop();
         WaitStopped();   // only now it is safe to delete our instance variables.
     }
@@ -91,9 +91,15 @@ public:
         const size_t pixel_count = new_width * new_height;
         Pixel *new_image = new Pixel [ pixel_count ];
         
-        new_image[5] = {200, 0, 50};
-        new_image[15] = {200, 0, 50};
-        new_image[25] = {2, 90, 250};
+        new_image[0].red = 200;
+        new_image[1].red = 200;
+        
+        new_image[510].red = 200;
+        new_image[511].red = 200;
+        
+        new_image[5].green = 200;
+        new_image[15].blue = 200;
+        new_image[25].green = 200;
 
         horizontal_position_ = 0;
         
@@ -1161,11 +1167,9 @@ int main(int argc, char *argv[]) {
     break;
           
   case 10:
-          ImageBuffer *scroller = new ImageBuffer(canvas);
-          
-          scroller->LoadBuffer(demo_parameter);
-
-          image_gen = scroller;
+	ImageBuffer *scroller = new ImageBuffer(canvas);          
+    scroller->LoadBuffer(demo_parameter);
+    image_gen = scroller;
     break;
   }
 
