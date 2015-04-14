@@ -63,6 +63,131 @@ private:
   Canvas *delegatee_;
 };
 
+/**
+ * Image buffer display demo (index 10)
+ *
+ */
+class ImageBuffer : public ThreadedCanvasManipulator {
+public:
+    // Scroll image with "scroll_jumps" pixels every "scroll_ms" milliseconds.
+    // If "scroll_ms" is negative, don't do any scrolling.
+    ImageBuffer(Canvas *m)
+    : ThreadedCanvasManipulator(m), scroll_jumps_(scroll_jumps),
+    scroll_ms_(scroll_ms),
+    horizontal_position_(0) {
+    }
+    
+    virtual ~ImageScroller() {
+        Stop();
+        WaitStopped();   // only now it is safe to delete our instance variables.
+    }
+    
+    // _very_ simplified. Can only read binary P6 PPM. Expects newlines in headers
+    // Not really robust. Use at your own risk :)
+    // This allows reload of an image while things are running, e.g. you can
+    // life-update the content.
+    bool LoadBuffer(const char *buffer) {
+        int new_width = 32, new_height = 16;
+        const size_t pixel_count = new_width * new_height;
+        Pixel *new_image = new Pixel [ pixel_count ];
+        
+        new_image[5] = {200, 0, 50};
+        new_image[15] = {200, 0, 50};
+        new_image[25] = {2, 90, 250};
+
+        horizontal_position_ = 0;
+        
+        MutexLock l(&mutex_new_image_);
+        new_image_.Delete();  // in case we reload faster than is picked up
+        new_image_.image = new_image;
+        new_image_.width = new_width;
+        new_image_.height = new_height;
+        return true;
+    }
+    
+    void Run() {
+        const int screen_height = canvas()->height();
+        const int screen_width = canvas()->width();
+        while (running()) {
+        	//
+            {
+                MutexLock l(&mutex_new_image_);
+                if (new_image_.IsValid()) {
+                    current_image_.Delete();
+                    current_image_ = new_image_;
+                    new_image_.Reset();
+                }
+            }
+                        
+            // Skip matrix update if the image hasn't changed
+            if (!current_image_.IsValid()) {
+                usleep(100 * 1000);
+                continue;
+            }
+            for (int x = 0; x < screen_width; ++x) {
+                for (int y = 0; y < screen_height; ++y) {
+                    const Pixel &p = current_image_.getPixel(
+                                                             (horizontal_position_ + x) % current_image_.width, y);
+                    canvas()->SetPixel(x, y, p.red, p.green, p.blue);
+                }
+            }
+            if (scroll_ms_ <= 0) {
+                // No scrolling. We don't need the image anymore.
+                current_image_.Delete();
+            } else {
+                usleep(scroll_ms_ * 1000);
+            }
+        }
+    }
+    
+private:
+    struct Pixel {
+        Pixel() : red(0), green(0), blue(0){}
+        uint8_t red;
+        uint8_t green;
+        uint8_t blue;
+    };
+    
+    struct Image {
+        Image() : width(-1), height(-1), image(NULL) {}
+        ~Image() { Delete(); }
+        void Delete() { delete [] image; Reset(); }
+        void Reset() { image = NULL; width = -1; height = -1; }
+        inline bool IsValid() { return image && height > 0 && width > 0; }
+        const Pixel &getPixel(int x, int y) {
+            static Pixel black;
+            if (x < 0 || x >= width || y < 0 || y >= height) return black;
+            return image[x + width * y];
+        }
+        
+        int width;
+        int height;
+        Pixel *image;
+    };
+    
+    // Read line, skip comments.
+    char *ReadLine(FILE *f, char *buffer, size_t len) {
+        char *result;
+        do {
+            result = fgets(buffer, len, f);
+        } while (result != NULL && result[0] == '#');
+        return result;
+    }
+    
+    const int scroll_jumps_;
+    const int scroll_ms_;
+    
+    // Current image is only manipulated in our thread.
+    Image current_image_;
+    
+    // New image can be loaded from another thread, then taken over in main thread.
+    Mutex mutex_new_image_;
+    Image new_image_;
+    
+    int32_t horizontal_position_;
+};
+
+
 /*
  * The following are demo image generators. They all use the utility
  * class ThreadedCanvasManipulator to generate new frames.
@@ -1033,6 +1158,14 @@ int main(int argc, char *argv[]) {
 
   case 9:
     image_gen = new VolumeBars(canvas, scroll_ms, canvas->width()/2);
+    break;
+          
+  case 10:
+          ImageBuffer *scroller = new ImageBuffer(canvas);
+          
+          scroller->LoadBuffer(demo_parameter);
+
+          image_gen = scroller;
     break;
   }
 
