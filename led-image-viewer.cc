@@ -49,7 +49,7 @@ public:
     : canvas_(output) {
     int delay_time = img.animationDelay();  // in 1/100s of a second.
     if (delay_time < 1) delay_time = 1;
-    delay_micros_ = delay_time * 10000;
+    delay_micros_ = delay_time * 100000;
 
     for (size_t y = 0; y < img.rows(); ++y) {
       for (size_t x = 0; x < img.columns(); ++x) {
