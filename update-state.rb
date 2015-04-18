@@ -21,7 +21,7 @@ class Main
 			`pkill -f current_sequence.gif`
 			
 			puts "Launching led-image-viewer...\n";	
-			`./led-image-viewer -r16 img/current_sequence.gif`
+			`./led-image-viewer -r16 img/current_sequence.gif -d`
 			puts "Waiting... #{pause_time} seconds\n";
 			
 			sleep pause_time
