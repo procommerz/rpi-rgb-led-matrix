@@ -72,20 +72,21 @@ uint32_t GPIO::InitOutputs(uint32_t outputs) {
 }
 
 static bool IsRaspberryPi2() {
+	return true;
   // TODO: there must be a better, more robust way. Can we ask the processor ?
-  char buffer[2048];
-  const int fd = open("/proc/cmdline", O_RDONLY);
-  ssize_t r = read(fd, buffer, sizeof(buffer) - 1); // returns all in one read.
-  buffer[r >= 0 ? r : 0] = '\0';
-  close(fd);
-  const char *mem_size_key;
-  off_t mem_size;
-  if ((mem_size_key = strstr(buffer, "mem_size=")) != NULL
-      && (sscanf(mem_size_key + strlen("mem_size="), "%lx", &mem_size) == 1)
-      && (mem_size == 0x3F000000)) {
-    return true;
-  }
-  return false;
+  // char buffer[2048];
+  // const int fd = open("/proc/cmdline", O_RDONLY);
+  // ssize_t r = read(fd, buffer, sizeof(buffer) - 1); // returns all in one read.
+  // buffer[r >= 0 ? r : 0] = '\0';
+  // close(fd);
+  // const char *mem_size_key;
+  // off_t mem_size;
+  // if ((mem_size_key = strstr(buffer, "mem_size=")) != NULL
+  //     && (sscanf(mem_size_key + strlen("mem_size="), "%lx", &mem_size) == 1)
+  //     && (mem_size == 0x3F000000)) {
+  //   return true;
+  // }
+  // return false;
 }
 
 static char *mmap_bcm_register(off_t register_offset) {

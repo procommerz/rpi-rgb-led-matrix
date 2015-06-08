@@ -135,14 +135,24 @@ static void DisplayAnimation(const std::vector<PreprocessedFrame*> &frames,
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
   fprintf(stderr, "Display.\n");
+  
+  // TODO: Check for file update here
+  
   for (unsigned int i = 0; !interrupt_received; ++i) {
     const PreprocessedFrame *frame = frames[i % frames.size()];
     matrix->SwapOnVSync(frame->canvas());
     if (frames.size() == 1) {
       sleep(86400);  // Only one image. Nothing to do.
     } else {
-      usleep(frame->delay_micros());
+		usleep(200000); // fixed frame-rate of 1/3FPS
+//      usleep(frame->delay_micros());
     }
+	
+	// if file changed:
+	// LoadAnimation()
+    // std::vector<PreprocessedFrame*> frames;
+    // PrepareBuffers(sequence_pics, matrix, &frames);
+	// i = 0;
   }
 }
 
@@ -227,14 +237,17 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<Magick::Image> sequence_pics;
+  
   if (!LoadAnimation(filename, matrix->width(), matrix->height(),
                      &sequence_pics)) {
     return 0;
   }
 
+  //matrix->Clear();
+	
   std::vector<PreprocessedFrame*> frames;
   PrepareBuffers(sequence_pics, matrix, &frames);
-
+  
   DisplayAnimation(frames, matrix);
 
   fprintf(stderr, "Caught signal. Exiting.\n");
